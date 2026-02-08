@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>上海本帮菜地图</title>
+    <!-- Leaflet 地图 CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="styles.css">
+    <!-- Leaflet 地图 JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <header class="header">
+        <div class="header-content">
+            <h1 class="logo">🍜 上海本帮菜地图</h1>
+            <div class="header-actions">
+                <button class="btn-icon" id="searchBtn" title="搜索">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+                <button class="btn-edit" id="editModeBtn">编辑模式</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 搜索面板 -->
+    <div class="search-panel" id="searchPanel">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="请输入地址，例如：南京东路100号" class="search-input">
+            <button class="btn-primary" id="searchSubmit">搜索</button>
+            <button class="btn-secondary" id="searchClose">取消</button>
+        </div>
+    </div>
+
+    <!-- 地图容器 -->
+    <div id="mapContainer" class="map-container"></div>
+
+    <!-- 餐厅信息卡片 -->
+    <div class="info-card" id="infoCard">
+        <div class="info-card-header">
+            <button class="btn-close" id="closeInfoCard">×</button>
+        </div>
+        <div class="info-card-body">
+            <img id="infoImage" class="info-image" src="" alt="">
+            <h2 id="infoName" class="info-name"></h2>
+            <div class="info-tags">
+                <span class="tag price-tag" id="infoPrice"></span>
+            </div>
+            <div class="info-section">
+                <h3 class="section-title">推荐菜品</h3>
+                <div id="infoDishes" class="dishes-list"></div>
+            </div>
+            <div class="info-section">
+                <p class="info-address" id="infoAddress"></p>
+            </div>
+            <div class="info-actions">
+                <button class="btn-primary" id="viewMoreBtn">查看更多</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 详细信息弹窗 -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="detailName"></h2>
+                <button class="btn-close" id="closeDetailModal">×</button>
+            </div>
+            <div class="modal-body">
+                <img id="detailImage" class="detail-image" src="" alt="">
+                <div class="detail-section">
+                    <h3>📍 地址</h3>
+                    <p id="detailAddress"></p>
+                </div>
+                <div class="detail-section">
+                    <h3>💰 人均价格</h3>
+                    <p id="detailPrice"></p>
+                </div>
+                <div class="detail-section">
+                    <h3>🍽️ 推荐菜品</h3>
+                    <div id="detailDishes"></div>
+                </div>
+                <div class="detail-section" id="detailMenuSection">
+                    <h3>📋 完整菜单</h3>
+                    <p id="detailMenu"></p>
+                    <div id="detailMenuImages" class="menu-images"></div>
+                </div>
+                <div class="detail-section" id="detailXhsSection">
+                    <h3>📱 小红书推荐</h3>
+                    <a id="detailXhsLink" class="xhs-link" href="" target="_blank">
+                        在小红书查看 →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑模式弹窗 -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="editModalTitle">添加餐厅</h2>
+                <button class="btn-close" id="closeEditModal">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <div class="form-group">
+                        <label for="editName">餐厅名称 *</label>
+                        <input type="text" id="editName" required placeholder="请输入餐厅名称">
+                    </div>
+                    <div class="form-group">
+                        <label for="editAddress">详细地址 *</label>
+                        <input type="text" id="editAddress" required placeholder="例如：黄浦区南京东路100号">
+                        <small>输入地址后可以尝试自动定位，或直接在地图上点击选择位置</small>
+                    </div>
+                    <div class="form-actions-inline">
+                        <button type="button" class="btn-secondary" id="locateBtn">📍 自动定位</button>
+                        <button type="button" class="btn-secondary" id="mapPickBtn">🗺️ 地图选点</button>
+                        <span id="locationStatus"></span>
+                    </div>
+                    <input type="hidden" id="editLng">
+                    <input type="hidden" id="editLat">
+                    
+                    <div class="form-group">
+                        <label for="editPrice">人均价格 *</label>
+                        <input type="text" id="editPrice" required placeholder="例如：¥80-150">
+                    </div>
+                    <div class="form-group">
+                        <label for="editDishes">推荐菜品 *</label>
+                        <textarea id="editDishes" required placeholder="每行一个菜品，例如：&#10;红烧肉&#10;糖醋小排&#10;清蒸鲈鱼" rows="4"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editImage">餐厅图片</label>
+                        <input type="file" id="editImageFile" accept="image/*" style="display: none;">
+                        <button type="button" class="btn-secondary" id="selectImageBtn">📷 选择图片</button>
+                        <small id="imageFileName"></small>
+                        <img id="imagePreview" class="image-preview" style="display: none;">
+                    </div>
+                    <div class="form-group">
+                        <label for="editMenu">完整菜单</label>
+                        <textarea id="editMenu" placeholder="完整菜单内容（可选）" rows="4"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editMenuImages">菜单图片</label>
+                        <input type="file" id="editMenuImagesFile" accept="image/*" multiple style="display: none;">
+                        <button type="button" class="btn-secondary" id="selectMenuImagesBtn">📋 选择菜单图片</button>
+                        <small>可选择多张图片（按住Ctrl多选）</small>
+                        <div id="menuImagesPreview" class="images-preview"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editXhsLink">小红书链接</label>
+                        <input type="url" id="editXhsLink" placeholder="小红书分享链接（可选）">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" id="cancelEditBtn">取消</button>
+                        <button type="submit" class="btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑模式工具栏 -->
+    <div class="edit-toolbar" id="editToolbar">
+        <button class="btn-add" id="addRestaurantBtn">+ 添加餐厅</button>
+        <button class="btn-secondary" id="exitEditModeBtn">退出编辑</button>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
